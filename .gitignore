@@ -1,0 +1,24 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Kubernetes
+kubeconfig
+
+# Docker
+*.tar
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Environment Variables
+.env
+
+# Python
+__pycache__/
+venv/
