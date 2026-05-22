@@ -23,8 +23,12 @@ pipeline {
 
         stage('Run Container Test') {
             steps {
+                sh 'docker rm -f test-container || true'
+
                 sh 'docker run -d --network host --name test-container $IMAGE_NAME:$IMAGE_TAG'
+
                 sh 'sleep 10'
+
                 sh 'curl http://localhost:5000'
             }
         }
