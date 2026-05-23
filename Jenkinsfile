@@ -9,10 +9,9 @@ spec:
   - name: kaniko
     image: gcr.io/kaniko-project/executor:latest
     command:
-      - /busybox/sh
+      - /kaniko/executor
     args:
-      - -c
-      - cat
+      - --help
     tty: true
     volumeMounts:
       - name: docker-config
