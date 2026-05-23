@@ -1,5 +1,30 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:latest
+    command:
+      - /busybox/sh
+    args:
+      - -c
+      - cat
+    tty: true
+    volumeMounts:
+      - name: docker-config
+        mountPath: /kaniko/.docker
+
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: dockerhub-secret
+'''
+        }
+    }
 
     environment {
         IMAGE_NAME = "sarthak24shirbhate/enterprise-python-app"
@@ -15,27 +40,18 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build and Push Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
-            }
-        }
-
-        stage('Docker Login') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                container('kaniko') {
+                    sh '''
+                    /kaniko/executor \
+                      --context `pwd` \
+                      --dockerfile `pwd`/Dockerfile \
+                      --destination=$IMAGE_NAME:$IMAGE_TAG \
+                      --insecure \
+                      --skip-tls-verify
+                    '''
                 }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
             }
         }
 
