@@ -14,29 +14,20 @@ spec:
     volumeMounts:
       - name: docker-config
         mountPath: /kaniko/.docker
-      - name: workspace-volume
-        mountPath: /workspace
-
-  - name: kubectl
-    image: bitnami/kubectl:latest
-    command:
-      - cat
-    tty: true
 
   volumes:
     - name: docker-config
       secret:
         secretName: dockerhub-secret
-
-    - name: workspace-volume
-      emptyDir: {}
+        items:
+          - key: .dockerconfigjson
+            path: config.json
 '''
         }
     }
 
     environment {
-        IMAGE_NAME = "sarthak24shirbhate/enterprise-python-app"
-        IMAGE_TAG = "v1"
+        IMAGE_NAME = "sarthak24shirbhate/enterprise-python-app:v1"
     }
 
     stages {
@@ -50,11 +41,8 @@ spec:
 
         stage('Verify Files') {
             steps {
-                sh '''
-                pwd
-                ls -la
-                find . -name Dockerfile
-                '''
+                sh 'ls -la'
+                sh 'ls -la app'
             }
         }
 
@@ -62,11 +50,13 @@ spec:
             steps {
                 container('kaniko') {
                     sh '''
+                    ls -la /kaniko/.docker
+                    cat /kaniko/.docker/config.json
+
                     /kaniko/executor \
                       --context=$(pwd)/app \
                       --dockerfile=$(pwd)/app/Dockerfile \
-                      --destination=$IMAGE_NAME:$IMAGE_TAG \
-                      --insecure \
+                      --destination=$IMAGE_NAME \
                       --skip-tls-verify
                     '''
                 }
@@ -75,37 +65,24 @@ spec:
 
         stage('Deploy to Kubernetes') {
             steps {
-                container('kubectl') {
-                    sh '''
-                    kubectl set image deployment/enterprise-python-app \
-                    enterprise-python-app=$IMAGE_NAME:$IMAGE_TAG \
-                    -n default
-
-                    kubectl rollout status deployment/enterprise-python-app -n default
-                    '''
-                }
+                sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                '''
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                container('kubectl') {
-                    sh '''
-                    kubectl get pods -n default
-                    kubectl get svc -n default
-                    '''
-                }
+                sh 'kubectl get pods'
+                sh 'kubectl get svc'
             }
         }
     }
 
     post {
-        success {
-            echo 'Pipeline executed successfully!'
-        }
-
-        failure {
-            echo 'Pipeline failed!'
+        always {
+            echo 'Pipeline completed'
         }
     }
 }
