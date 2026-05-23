@@ -65,10 +65,16 @@ spec:
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                kubectl apply -f k8s/deployment.yaml
-                kubectl apply -f k8s/service.yaml
-                '''
+                 container('kubectl') {
+                     sh '''
+                     kubectl apply -f k8s/deployment.yaml
+                     kubectl apply -f k8s/service.yaml
+
+                     kubectl rollout restart deployment/enterprise-python-app
+
+                     kubectl rollout status deployment/enterprise-python-app
+                     '''
+                }
             }
         }
 
