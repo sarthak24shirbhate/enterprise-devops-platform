@@ -4,8 +4,10 @@ pipeline {
             yaml '''
 apiVersion: v1
 kind: Pod
+
 spec:
   containers:
+
   - name: kaniko
     image: gcr.io/kaniko-project/executor:v1.23.2-debug
     command:
@@ -14,6 +16,12 @@ spec:
     volumeMounts:
       - name: docker-config
         mountPath: /kaniko/.docker
+
+  - name: kubectl
+    image: bitnami/kubectl:latest
+    command:
+      - cat
+    tty: true
 
   volumes:
     - name: docker-config
@@ -50,7 +58,6 @@ spec:
             steps {
                 container('kaniko') {
                     sh '''
-                    ls -la /kaniko/.docker
                     cat /kaniko/.docker/config.json
 
                     /kaniko/executor \
@@ -65,23 +72,27 @@ spec:
 
         stage('Deploy to Kubernetes') {
             steps {
-                 container('kubectl') {
-                     sh '''
-                     kubectl apply -f k8s/deployment.yaml
-                     kubectl apply -f k8s/service.yaml
+                container('kubectl') {
+                    sh '''
+                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f k8s/service.yaml
 
-                     kubectl rollout restart deployment/enterprise-python-app
+                    kubectl rollout restart deployment/enterprise-python-app
 
-                     kubectl rollout status deployment/enterprise-python-app
-                     '''
+                    kubectl rollout status deployment/enterprise-python-app
+                    '''
                 }
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh 'kubectl get pods'
-                sh 'kubectl get svc'
+                container('kubectl') {
+                    sh '''
+                    kubectl get pods
+                    kubectl get svc
+                    '''
+                }
             }
         }
     }
