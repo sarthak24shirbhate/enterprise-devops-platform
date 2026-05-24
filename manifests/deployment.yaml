@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enterprise-python-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: enterprise-python-app
+  template:
+    metadata:
+      labels:
+        app: enterprise-python-app
+    spec:
+      containers:
+      - name: enterprise-python-app
+        image: sarthak24shirbhate/enterprise-python-app:v1
+        ports:
+        - containerPort: 5000
