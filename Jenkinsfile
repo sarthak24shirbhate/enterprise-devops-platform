@@ -18,11 +18,11 @@ spec:
         mountPath: /kaniko/.docker
 
   - name: kubectl
-    image: lachlanevenson/k8s-kubectl:v1.28.4
+    image: bitnami/kubectl:latest
     command:
-      - sleep
-    args:
-      - "9999999"
+      - /bin/sh
+      - -c
+      - cat
     tty: true
 
   volumes:
@@ -60,7 +60,8 @@ spec:
             steps {
                 container('kaniko') {
                     sh '''
-                    echo "Docker config check"
+                    echo "Checking Docker config"
+
                     cat /kaniko/.docker/config.json
 
                     /kaniko/executor \
@@ -80,6 +81,7 @@ spec:
                     kubectl version --client
 
                     kubectl apply -f k8s/deployment.yaml
+
                     kubectl apply -f k8s/service.yaml
 
                     kubectl rollout restart deployment enterprise-python-app
@@ -95,6 +97,7 @@ spec:
                 container('kubectl') {
                     sh '''
                     kubectl get pods
+
                     kubectl get svc
                     '''
                 }
